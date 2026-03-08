@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokédex — Original 151</title>
+  <style>
+    :root {
+      --bg: #0d0d1a;
+      --bg2: #13132a;
+      --bg3: #1a1a35;
+      --card: #16162e;
+      --card-hover: #1e1e3f;
+      --border: rgba(120,80,255,0.18);
+      --accent: #7c3aed;
+      --accent2: #3b82f6;
+      --accent3: #a855f7;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --modal-bg: rgba(0,0,0,0.75);
+      --radius: 16px;
+      --radius-sm: 8px;
+      --shadow: 0 8px 32px rgba(124,58,237,0.15);
+      --glow: 0 0 24px rgba(124,58,237,0.35);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND AURA ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -30%;
+      left: -20%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30%;
+      right: -20%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(59,130,246,0.10) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 48px 20px 24px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+    .logo-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: var(--glow);
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+
+    /* ── SEARCH + CONTROLS ── */
+    .controls {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 0 auto 24px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .search-wrap {
+      position: relative;
+    }
+    .search-icon {
+      position: absolute;
+      left: 16px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    #search {
+      width: 100%;
+      padding: 14px 20px 14px 46px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    #search:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    #search::placeholder { color: var(--text-muted); }
+
+    /* ── TYPE FILTERS ── */
+    .type-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    .type-btn {
+      padding: 6px 14px;
+      border-radius: 50px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      opacity: 0.7;
+    }
+    .type-btn:hover { transform: translateY(-1px); opacity: 1; }
+    .type-btn.active { opacity: 1; box-shadow: 0 0 12px 2px currentColor; }
+
+    /* ── STATS BAR ── */
+    .count-bar {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 10;
+      margin-bottom: 8px;
+    }
+    #count { color: var(--accent3); font-weight: 700; }
+
+    /* ── GRID ── */
+    .grid {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 16px;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 14px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s, border-color .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -40%; left: -40%;
+      width: 180%; height: 180%;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.04) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    .card:hover::before { opacity: 1; }
+    .card:hover {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(124,58,237,0.4);
+      border-color: rgba(124,58,237,0.5);
+      background: var(--card-hover);
+    }
+    .card-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .card-img-wrap {
+      width: 96px; height: 96px;
+      margin: 0 auto 10px;
+      position: relative;
+    }
+    .card-img-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: -6px; left: 50%;
+      transform: translateX(-50%);
+      width: 60%; height: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 50%;
+      filter: blur(3px);
+    }
+    .card img {
+      width: 96px; height: 96px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+      transition: transform .2s;
+    }
+    .card:hover img { transform: scale(1.08) translateY(-2px); }
+    .card-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      margin-bottom: 8px;
+      letter-spacing: .3px;
+    }
+    .types { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: #fff;
+    }
+
+    /* ── LOADING ── */
+    #loading {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      margin: 0 auto 20px;
+      border: 4px solid rgba(124,58,237,0.15);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+    /* ── NO RESULTS ── */
+    #no-results {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 10;
+    }
+    #no-results .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ── MODAL OVERLAY ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--modal-bg);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn .2s ease;
+    }
+    #modal-overlay.open { display: flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    .modal {
+      background: linear-gradient(145deg, #1a1a35, #13132a);
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), var(--glow);
+      animation: slideUp .3s cubic-bezier(.34,1.56,.64,1);
+      position: relative;
+    }
+    @keyframes slideUp { from{opacity:0;transform:translateY(30px) scale(.95)} to{opacity:1;transform:none} }
+
+    .modal::-webkit-scrollbar { width: 4px; }
+    .modal::-webkit-scrollbar-track { background: transparent; }
+    .modal::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+    .modal-header {
+      padding: 28px 28px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .modal-meta { flex: 1; }
+    .modal-num {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      margin-bottom: 4px;
+    }
+    .modal-name {
+      font-size: 1.8rem;
+      font-weight: 800;
+      text-transform: capitalize;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+    .modal-types { display: flex; gap: 6px; margin-top: 10px; }
+    .close-btn {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+    .close-btn:hover { background: rgba(124,58,237,0.3); }
+
+    .modal-img-section {
+      text-align: center;
+      padding: 16px 28px;
+      position: relative;
+    }
+    .modal-img-bg {
+      width: 160px; height: 160px;
+      margin: 0 auto;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-img-bg img {
+      width: 150px; height: 150px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 20px rgba(124,58,237,0.4));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}
+    }
+
+    .modal-body { padding: 0 28px 28px; }
+
+    /* Info grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .info-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+    }
+    .info-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Abilities */
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .abilities { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+    .ability-tag {
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.3);
+      color: #c084fc;
+      padding: 5px 13px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    /* Stats */
+    .stats { display: flex; flex-direction: column; gap: 10px; }
+    .stat-row { display: flex; align-items: center; gap: 10px; }
+    .stat-name {
+      width: 70px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .stat-val {
+      width: 34px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .stat-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50px;
+      overflow: hidden;
+    }
+    .stat-bar {
+      height: 100%;
+      border-radius: 50px;
+      width: 0%;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* TYPE COLORS */
+    .type-normal    { background:#9CA3AF; }
+    .type-fire      { background:linear-gradient(135deg,#f97316,#ef4444); }
+    .type-water     { background:linear-gradient(135deg,#3b82f6,#06b6d4); }
+    .type-electric  { background:linear-gradient(135deg,#eab308,#f59e0b); }
+    .type-grass     { background:linear-gradient(135deg,#22c55e,#16a34a); }
+    .type-ice       { background:linear-gradient(135deg,#67e8f9,#38bdf8); color:#1e3a5f !important; }
+    .type-fighting  { background:linear-gradient(135deg,#dc2626,#b91c1c); }
+    .type-poison    { background:linear-gradient(135deg,#a855f7,#7c3aed); }
+    .type-ground    { background:linear-gradient(135deg,#d97706,#92400e); }
+    .type-flying    { background:linear-gradient(135deg,#818cf8,#6366f1); }
+    .type-psychic   { background:linear-gradient(135deg,#ec4899,#db2777); }
+    .type-bug       { background:linear-gradient(135deg,#84cc16,#65a30d); }
+    .type-rock      { background:linear-gradient(135deg,#a8a29e,#78716c); }
+    .type-ghost     { background:linear-gradient(135deg,#6d28d9,#4c1d95); }
+    .type-dragon    { background:linear-gradient(135deg,#7c3aed,#1d4ed8); }
+    .type-dark      { background:linear-gradient(135deg,#374151,#111827); }
+    .type-steel     { background:linear-gradient(135deg,#9ca3af,#6b7280); }
+    .type-fairy     { background:linear-gradient(135deg,#f9a8d4,#ec4899); color:#4a1942 !important; }
+
+    /* Stat bar colors */
+    .stat-hp    { background: linear-gradient(90deg,#ef4444,#f87171); }
+    .stat-atk   { background: linear-gradient(90deg,#f97316,#fb923c); }
+    .stat-def   { background: linear-gradient(90deg,#eab308,#fbbf24); }
+    .stat-spatk { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+    .stat-spdef { background: linear-gradient(90deg,#22c55e,#4ade80); }
+    .stat-spd   { background: linear-gradient(90deg,#a855f7,#c084fc); }
+
+    /* Card fade-in */
+    .card { animation: cardIn .35s ease both; }
+    @keyframes cardIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+      .modal { border-radius: 16px; }
+      .modal-header, .modal-body { padding-left: 18px; padding-right: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <h1>Pokédex</h1>
+  </div>
+  <p class="subtitle">Original 151 · Kanto Region</p>
+</header>
+
+<div class="controls">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Search by name or number…" autocomplete="off" />
+  </div>
+  <div class="type-filters" id="type-filters"></div>
+</div>
+
+<div class="count-bar"><span id="count">0</span> Pokémon found</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading Pokémon data…</p>
+</div>
+
+<div class="grid" id="grid"></div>
+<div id="no-results">
+  <div class="icon">😶‍🌫️</div>
+  <p>No Pokémon found. Try a different search!</p>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-meta">
+        <div class="modal-num" id="m-num"></div>
+        <div class="modal-name" id="m-name"></div>
+        <div class="modal-types" id="m-types"></div>
+      </div>
+      <button class="close-btn" id="close-modal">✕</button>
+    </div>
+    <div class="modal-img-section">
+      <div class="modal-img-bg">
+        <img id="m-img" src="" alt="" />
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="info-grid">
+        <div class="info-card"><div class="info-label">Height</div><div class="info-value" id="m-height"></div></div>
+        <div class="info-card"><div class="info-label">Weight</div><div class="info-value" id="m-weight"></div></div>
+      </div>
+      <div class="section-title">Abilities</div>
+      <div class="abilities" id="m-abilities"></div>
+      <div class="section-title">Base Stats</div>
+      <div class="stats" id="m-stats"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STAT_META = [
+    { key: 'hp',              label: 'HP',      cls: 'stat-hp',    max: 255 },
+    { key: 'attack',          label: 'Atk',     cls: 'stat-atk',   max: 190 },
+    { key: 'defense',         label: 'Def',     cls: 'stat-def',   max: 230 },
+    { key: 'special-attack',  label: 'Sp.Atk',  cls: 'stat-spatk', max: 194 },
+    { key: 'special-defense', label: 'Sp.Def',  cls: 'stat-spdef', max: 230 },
+    { key: 'speed',           label: 'Speed',   cls: 'stat-spd',   max: 200 },
+  ];
+
+  const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+
+  let allPokemon = [];
+  let activeType = null;
+
+  async function fetchAll() {
+    const listRes = await fetch('https://pokeapi.co/api/v2/pokemon?limit=151');
+    const list = await listRes.json();
+    const details = await Promise.all(
+      list.results.map(p => fetch(p.url).then(r => r.json()))
+    );
+    return details.sort((a, b) => a.id - b.id);
+  }
+
+  function typeColor(type) {
+    const map = {
+      normal:'#9CA3AF', fire:'#f97316', water:'#3b82f6', electric:'#eab308',
+      grass:'#22c55e', ice:'#67e8f9', fighting:'#dc2626', poison:'#a855f7',
+      ground:'#d97706', flying:'#818cf8', psychic:'#ec4899', bug:'#84cc16',
+      rock:'#a8a29e', ghost:'#6d28d9', dragon:'#7c3aed', dark:'#374151',
+      steel:'#9ca3af', fairy:'#f9a8d4'
+    };
+    return map[type] || '#6b7280';
+  }
+
+  function buildTypeFilters(pokemon) {
+    const usedTypes = new Set();
+    pokemon.forEach(p => p.types.forEach(t => usedTypes.add(t.type.name)));
+    const container = document.getElementById('type-filters');
+    // All button
+    const allBtn = document.createElement('button');
+    allBtn.className = 'type-btn active';
+    allBtn.dataset.type = '';
+    allBtn.textContent = 'All';
+    allBtn.style.cssText = `background:rgba(124,58,237,0.25);color:#c084fc;border-color:rgba(124,58,237,0.5);`;
+    container.appendChild(allBtn);
+
+    ALL_TYPES.filter(t => usedTypes.has(t)).forEach(type => {
+      const btn = document.createElement('button');
+      btn.className = 'type-btn type-' + type;
+      btn.dataset.type = type;
+      btn.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+      container.appendChild(btn);
+    });
+
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('.type-btn');
+      if (!btn) return;
+      container.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeType = btn.dataset.type || null;
+      render();
+    });
+  }
+
+  function getArtwork(id) {
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+  }
+
+  function createCard(p) {
+    const types = p.types.map(t => t.type.name);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-num">#${String(p.id).padStart(3,'0')}</div>
+      <div class="card-img-wrap">
+        <img src="${getArtwork(p.id)}" alt="${p.name}" loading="lazy" />
+      </div>
+      <div class="card-name">${p.name}</div>
+      <div class="types">${types.map(t => `<span class="badge type-${t}">${t}</span>`).join('')}</div>
+    `;
+    card.addEventListener('click', () => openModal(p));
+    return card;
+  }
+
+  function render() {
+    const query = document.getElementById('search').value.toLowerCase().trim();
+    const grid = document.getElementById('grid');
+    const noResults = document.getElementById('no-results');
+    grid.innerHTML = '';
+
+    const filtered = allPokemon.filter(p => {
+      const matchQuery = !query || p.name.includes(query) || String(p.id).includes(query);
+      const matchType  = !activeType || p.types.some(t => t.type.name === activeType);
+      return matchQuery && matchType;
+    });
+
+    document.getElementById('count').textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      noResults.style.display = 'block';
+      return;
+    }
+    noResults.style.display = 'none';
+
+    filtered.forEach((p, i) => {
+      const card = createCard(p);
+      card.style.animationDelay = `${Math.min(i * 20, 400)}ms`;
+      grid.appendChild(card);
+    });
+  }
+
+  function openModal(p) {
+    const types = p.types.map(t => t.type.name);
+    document.getElementById('m-num').textContent = `#${String(p.id).padStart(3,'0')}`;
+    document.getElementById('m-name').textContent = p.name;
+    document.getElementById('m-img').src = getArtwork(p.id);
+    document.getElementById('m-img').alt = p.name;
+    document.getElementById('m-height').textContent = `${(p.height / 10).toFixed(1)} m`;
+    document.getElementById('m-weight').textContent = `${(p.weight / 10).toFixed(1)} kg`;
+
+    const typesEl = document.getElementById('m-types');
+    typesEl.innerHTML = types.map(t => `<span class="badge type-${t}">${t}</span>`).join('');
+
+    const abilitiesEl = document.getElementById('m-abilities');
+    abilitiesEl.innerHTML = p.abilities.map(a =>
+      `<span class="ability-tag">${a.ability.name.replace('-',' ')}</span>`
+    ).join('');
+
+    const statsEl = document.getElementById('m-stats');
+    statsEl.innerHTML = '';
+    STAT_META.forEach(meta => {
+      const stat = p.stats.find(s => s.stat.name === meta.key);
+      const val = stat ? stat.base_stat : 0;
+      const pct = Math.min(100, (val / meta.max) * 100);
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = `
+        <div class="stat-name">${meta.label}</div>
+        <div class="stat-val">${val}</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar ${meta.cls}" data-pct="${pct}"></div>
+        </div>
+      `;
+      statsEl.appendChild(row);
+    });
+
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Animate bars after paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        statsEl.querySelectorAll('.stat-bar').forEach(bar => {
+          bar.style.width = bar.dataset.pct + '%';
+        });
+      });
+    });
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+    // Reset bars for next open
+    document.querySelectorAll('.stat-bar').forEach(b => b.style.width = '0%');
+  }
+
+  document.getElementById('close-modal').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.getElementById('search').addEventListener('input', render);
+
+  // Boot
+  (async () => {
+    try {
+      allPokemon = await fetchAll();
+      document.getElementById('loading').style.display = 'none';
+      buildTypeFilters(allPokemon);
+      render();
+    } catch (err) {
+      document.getElementById('loading').innerHTML = `<p style="color:#ef4444">⚠️ Failed to load Pokémon. Check your connection and refresh.</p>`;
+      console.error(err);
+    }
+  })();
+</script>
+</body>
+</html>
